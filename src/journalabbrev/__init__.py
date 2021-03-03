@@ -1,8 +1,8 @@
-from setuptools.config import read_configuration
+from importlib.metadata import distribution
+from typing import *
 
-config = read_configuration("setup.cfg")
-metadata = config["metadata"]
+pkg_metadata = dict(distribution("journal-abbrev").metadata.items())
 
 __all__ = ["__version__", "__author__"]
-__version__ = metadata["version"]
-__author__ = metadata["author"]
+__version__ = pkg_metadata["Version"]
+__author__ = pkg_metadata["Author"]

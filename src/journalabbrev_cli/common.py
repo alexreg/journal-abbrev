@@ -1,5 +1,6 @@
 from progressbar.bar import ProgressBar
 import sys
+from typing import *
 
 
 class FatalError(Exception):
@@ -14,7 +15,7 @@ def error(message: str):
 
 
 def warn(message: str):
-	print("WARN: " + message, file = sys.stderr, flush = True)
+	print("WARNING: " + message, file = sys.stderr, flush = True)
 
 
 def info(message: str):

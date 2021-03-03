@@ -8,8 +8,6 @@ import re
 from re import RegexFlag
 import sys
 from textwrap import dedent
-from tinydb import TinyDB
-from tinydb.table import Table
 from typing import *
 
 from journalabbrev.common import *
@@ -25,7 +23,7 @@ if not TYPE_CHECKING:
 braces_regex = re.compile(r"(?<!\\)[{}]", RegexFlag.IGNORECASE)
 
 
-def gen_sourcemap_map(journal_doc, journaltitle: str, abbrev: str, output_io: IO):
+def gen_sourcemap_map(journal: Journal, journaltitle: str, abbrev: str, output_io: IO):
 	output_io.write(
 		dedent(rf"""
 			\DeclareSourcemap{{
@@ -40,28 +38,32 @@ def gen_sourcemap_map(journal_doc, journaltitle: str, abbrev: str, output_io: IO
 	output_io.write("\n")
 
 
-# TODO: allow using different abbreviation formats.
-def proc_bib(input_io: TextIOWrapper, output_io: TextIOWrapper, db: JournalDB, silent: bool = False, output_format: str = "bib"):
-	journals_list = db.journals()
+def proc_bib(input_io: TextIOWrapper, output_io: TextIOWrapper, jdb: JournalDB, silent: bool = False, output_format: str = "bib", abbrev_type = "iso4"):
+	if not hasattr(Journal, abbrev_type):
+		raise ValueError(f"Invalid abbreviation type `{abbrev_type}`")
 
 	bib_db = bibtexparser.load(input_io)
 
-	for cur_entry in bib_db.entries:
-		journaltitle = cur_entry.get("journaltitle")
+	for entry in bib_db.entries:
+		journaltitle = entry.get("journaltitle")
 		if journaltitle is None:
 			continue
 		journaltitle = braces_regex.sub("", journaltitle)
 
-		name_pattern = re.compile(fr"^{re.escape(journaltitle)}($|:)", RegexFlag.IGNORECASE)
-		journal_doc = journals_list.get(Journal.name_key, name_pattern)
-		abbrev = journal_doc.iso4 if journal_doc else None
+		name_pattern = re.compile(fr"^{re.escape(journaltitle)}(:?.*)$", RegexFlag.IGNORECASE)
+		# TODO: query using lambdas?
+		# TODO: normalize names (just in index?).
+		res = jdb.journals.query_one(Journal.names_key, name_pattern)
+		if res:
+			_, journal = res
+			abbrev = getattr(journal, abbrev_type)
 
-		if output_format == "bib":
-			cur_entry["journaltitle"] = f"{{{abbrev or journaltitle}}}"
-		elif output_format == "sourcemap":
-			gen_sourcemap_map(journal_doc, journaltitle, abbrev, output_io)
+			if output_format == "bib":
+				entry["journaltitle"] = f"{{{abbrev or journaltitle}}}"
+			elif output_format == "sourcemap":
+				gen_sourcemap_map(journal, journaltitle, abbrev, output_io)
 
-		abbrev_msg = f"abbreviating to '{abbrev}'" if abbrev is not None else f"no abbreviation found"
+		abbrev_msg = f"abbreviating to '{abbrev}'" if res else f"no abbreviation found"
 		if not silent:
 			info(f"found journal name '{journaltitle}'; {abbrev_msg}.")
 
@@ -77,7 +79,7 @@ def proc_bib(input_io: TextIOWrapper, output_io: TextIOWrapper, db: JournalDB, s
 		pass
 
 
-def cmd_proc_bibs(db: TinyDB, args: Namespace, *, output_format_arg: Action, output_filenames_arg: Action):
+def cmd_proc_bibs(jdb: JournalDB, args: Namespace, *, output_format_arg: Action, output_filenames_arg: Action):
 	def get_output_filename(filename):
 		basename, ext = os.path.splitext(filename)
 		if args.output_format == "bib":
@@ -88,41 +90,41 @@ def cmd_proc_bibs(db: TinyDB, args: Namespace, *, output_format_arg: Action, out
 			raise ArgumentError(output_format_arg)
 
 	filenames = args.filenames
-	output_filenames = args.output_filenames or [get_output_filename(f) for f in filenames]
+	output_filenames = args.output_filenames or [get_output_filename(filename) for filename in filenames]
 	if len(output_filenames) != len(filenames):
-		raise ArgumentError(output_filenames_arg, f"expected {len(filenames)} filename(s); got {len(output_filenames)}")
+		raise ArgumentError(output_filenames_arg, f"Expected {len(filenames)} filename(s); got {len(output_filenames)}")
 
-	if len(filenames) == 0:
+	if not filenames:
 		if not args.silent:
 			info(f"processing bib from stdin...")
 
-		proc_bib(sys.stdin, sys.stdout, db, args.silent, args.output_format)
+		proc_bib(sys.stdin, sys.stdout, jdb, args.silent, args.output_format, args.abbrev_type)
 
 		if not args.silent:
 			info(f"done processing stdin; written to stdout.")
 	else:
-		for cur_filename, cur_output_filename in zip(filenames, output_filenames):
-			cur_input_io = None
-			cur_output_io = None
+		for filename, output_filename in zip(filenames, output_filenames):
+			input_io = None
+			output_io = None
 			try:
 				if not args.silent:
-					info(f"processing bib file `{cur_filename}`...")
+					info(f"processing bib file `{filename}`...")
 
-				cur_input_io = open(cur_filename, "r")
-				if cur_output_filename == "-":
-					cur_output_io = sys.stdout
+				input_io = open(filename, "r")
+				if output_filename == "-":
+					output_io = sys.stdout
 				else:
-					cur_output_io = open(cur_output_filename, "w")
+					output_io = open(output_filename, "w")
 
-				proc_bib(cur_input_io, cur_output_io, db, args.silent, args.output_format)
+				proc_bib(input_io, output_io, jdb, args.silent, args.output_format, args.abbrev_type)
 
 				if not args.silent:
-					info(f"done processing bib file; written `{cur_output_filename}`.")
+					info(f"done processing bib file; written `{output_filename}`.")
 			finally:
-				if cur_input_io is not None:
-					cur_input_io.close()
-				if cur_output_io is not None:
-					cur_output_io.close()
+				if input_io is not None:
+					input_io.close()
+				if output_io is not None:
+					output_io.close()
 
 	if not args.silent:
 		info(f"all done.")
@@ -134,16 +136,14 @@ def main():
 	parser = ArgumentParser(description = f"Abbreviates journal names in bibliography files.")
 	parser.add_argument("filenames", metavar = "FILE", type = str, nargs = "*", help = f"a path to a bibliography (`.bib`) file to read")
 	parser.add_argument("--silent", "-s", action = "store_true", help = f"do not write messages to stderr")
+	parser.add_argument("--abbrev-type", "-t", type = str, choices = ["iso4", "coden"], default = "iso4", help = f"the type of abbreviation to output {default_arg_help}")
 	output_format_arg = parser.add_argument("--output-format", "-f", type = str, choices = ["bib", "sourcemap"], default = "bib", help = f"the format of the output to generate {default_arg_help}")
 	output_filenames_arg = parser.add_argument("--output-filenames", "-o", metavar = "OUTPUT_FILE", type = str, nargs = "+", help = f"the path to the bibliography (`.bib`) file to write, one per input file")
 	args = parser.parse_args()
 
 	try:
-		with JournalDB() as db:
-			handle_upgrade_events(db)
-			db.open()
-
-			cmd_proc_bibs(db, args,
+		with JournalDB() as jdb:
+			cmd_proc_bibs(jdb, args,
 				output_format_arg = output_format_arg,
 				output_filenames_arg = output_filenames_arg,
 			)
@@ -154,6 +154,7 @@ def main():
 			raise
 		else:
 			print(f"fatal error: {e}", file = sys.stdout)
+
 
 if __name__ == "__main__":
     main()
