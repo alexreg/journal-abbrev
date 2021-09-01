@@ -2,7 +2,7 @@ from argparse import Action, ArgumentError, ArgumentParser, Namespace
 import inspect
 import io
 from itertools import *
-import json
+import json5 as json
 import os
 from progressbar import ProgressBar
 import re
