@@ -190,7 +190,8 @@ class JournalList():
 		id = self._jdb._gen_journal_id(batch)
 		batch.put((self._jdb._journals_cf, _pack(id)), _pack(journal, _encode))
 		for name in journal.names:
-			batch.put((self._jdb._journal_names_index_cf, _pack(name)), _pack(id))
+			index_name = self.sanitize_journal_name(name).casefold()
+			batch.put((self._jdb._journal_names_index_cf, _pack(index_name)), _pack(id))
 		if new_batch:
 			self._jdb._db.write(batch)
 		return id
@@ -236,11 +237,12 @@ class JournalList():
 
 	def query(self, match_key: str, match_value: Union[str, Pattern[str]]) -> Iterator[Tuple[JournalID, Journal]]:
 		def name_to_id(name: str) -> Optional[JournalID]:
-			id_bytes = self._jdb._db.get((self._jdb._journal_names_index_cf, _pack(name)))
+			index_name = self.sanitize_journal_name(name).casefold()
+			id_bytes = self._jdb._db.get((self._jdb._journal_names_index_cf, _pack(index_name)))
 			return JournalID(_unpack(id_bytes)) if id_bytes is not None else None
 
 		def name_to_journal(name: str) -> Optional[Tuple[JournalID, Journal]]:
-			id = name_to_id(self.sanitize_journal_name(name).casefold())
+			id = name_to_id(name)
 			journal = self.get(id)
 			assert(id is None or journal is not None)
 			return (id, journal) if id is not None else None
@@ -257,7 +259,7 @@ class JournalList():
 				return filter(None, (name_to_journal(name) for name in names))
 			elif isinstance(match_value, Pattern):
 				pattern = cast(Pattern[str], match_value)
-				return ((id, self.get(id)) for name, id in self.iter_name_index() if pattern.fullmatch(name))
+				return ((id, self.get(id)) for id, journal in iter(self) for name in journal.names if pattern.fullmatch(name))
 
 		return ((id, journal) for id, journal in self if journal.matches(match_key, match_value))
 
@@ -376,7 +378,7 @@ class JournalDB(EventEmitter):
 		self._db_col_families = {
 			self._metadata_cf_name: column_family_options(merge_operator = MetadataMergeOperator()),
 			self._journals_cf_name: column_family_options(),
-			self._journal_names_index_cf_name: column_family_options(),
+			self._journal_names_index_cf_name: column_family_options(comparator = None),
 		}
 
 	def __repr__(self) -> str:
