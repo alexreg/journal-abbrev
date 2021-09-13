@@ -101,14 +101,14 @@ def fetch_source(name: str, jdb: JournalDB, overwrite: bool = False) -> bool:
 	name = name.casefold()
 	fetcher_typ = fetcher_map.get(name)
 	if fetcher_typ is None:
-		error(f"unrecognised fetch source '{name}'.")
+		error(f"unrecognised fetch source '{name}'")
 		raise FatalError()
 
 	fetcher = fetcher_typ()
 	fetchers.append(fetcher)
 	info(f"fetching source '{name}'...")
 	journals = list(fetcher.fetch())
-	info(f"found {len(journals):,} journals in source '{name}'.")
+	info(f"found {len(journals):,} journals in source '{name}'")
 	fetchers.remove(fetcher)
 
 	info(f"adding journals to database...")
@@ -161,20 +161,20 @@ def fetch_source(name: str, jdb: JournalDB, overwrite: bool = False) -> bool:
 
 	pbar.finish()
 
-	info(f"added {num_journals_added:,} journal(s) to database; updated {num_journals_updated:,} journal(s) in database; {num_warnings:,} warning(s).")
+	info(f"added {num_journals_added:,} journal(s) to database; updated {num_journals_updated:,} journal(s) in database; {num_warnings:,} warning(s)")
 	return True
 
 
 def cmd_reserialize(jdb: JournalDB, args: Namespace):
 	info(f"reserialising database entries...")
 	jdb.journals.reserialize()
-	info(f"done.")
+	info(f"done")
 
 
 def cmd_rebuild_indexes(jdb: JournalDB, args: Namespace):
 	info(f"rebuilding database indexes...")
 	jdb.journals.rebuild_indexes()
-	info(f"done.")
+	info(f"done")
 
 
 def cmd_info(jdb: JournalDB, args: Namespace):
@@ -273,7 +273,7 @@ def cmd_fetch_sources(jdb: JournalDB, args: Namespace):
 	sources = args.sources
 
 	if args.overwrite:
-		warn(f"any existing journals will be overwritten.")
+		warn(f"any existing journals will be overwritten")
 
 	sources_str = ", ".join(f"'{source}'" for source in sources)
 	info(f"fetching {len(sources)} source(s): {sources_str}")
@@ -281,7 +281,7 @@ def cmd_fetch_sources(jdb: JournalDB, args: Namespace):
 	for source in sources:
 		fetch_source(source, jdb, args.overwrite)
 
-	info(f"all done: {len(jdb.journals):,} journal(s) in total.")
+	info(f"all done: {len(jdb.journals):,} journal(s) in total")
 
 
 def signal_handler(signum, frame):
