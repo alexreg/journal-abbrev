@@ -1,5 +1,5 @@
 from argparse import Action, ArgumentError, ArgumentParser, Namespace
-from io import TextIOWrapper
+from io import StringIO, TextIOWrapper
 import bibtexparser
 from bibtexparser.bibdatabase import BibDatabase
 from bibtexparser.bwriter import BibTexWriter

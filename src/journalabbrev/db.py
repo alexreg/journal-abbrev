@@ -1,7 +1,5 @@
-from io import StringIO
 from itertools import islice
 from sys import prefix
-from types import TracebackType
 from deepmerge import Merger, STRATEGY_END
 from deepmerge.exception import InvalidMerge
 from deepmerge.strategy.dict import DictStrategies
@@ -12,7 +10,6 @@ import msgpack
 import os.path
 from packaging.version import Version
 from pymitter import EventEmitter
-import re
 from re import Pattern
 import rocksdb
 import rocksdb.errors

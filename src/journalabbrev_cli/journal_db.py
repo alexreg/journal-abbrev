@@ -2,7 +2,7 @@ from argparse import Action, ArgumentError, ArgumentParser, Namespace
 import inspect
 import io
 from itertools import *
-import json5 as json
+import json5
 import os
 from progressbar import ProgressBar
 import re
@@ -53,7 +53,7 @@ def read_journals_stdin():
 	buffered_stdin = cast(io.BufferedReader, sys.stdin.buffer)
 	if not buffered_stdin.peek(1):
 		return None
-	json_input = json.load(buffered_stdin, object_hook = object_hook)
+	json_input = json5.load(buffered_stdin, object_hook = object_hook)
 	if not isinstance(json_input, list):
 		return [json_input]
 
