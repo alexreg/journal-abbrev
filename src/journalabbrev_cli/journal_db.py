@@ -56,6 +56,7 @@ def read_journals_stdin():
 	json_input = json5.load(buffered_stdin, object_hook = object_hook)
 	if not isinstance(json_input, list):
 		return [json_input]
+	return json_input
 
 
 def get_journal_queries(args: Namespace) -> Iterator[Union[JournalID, JournalQuery]]:
@@ -185,6 +186,10 @@ def cmd_info(jdb: JournalDB, args: Namespace):
 
 def cmd_add_journals(jdb: JournalDB, args: Namespace):
 	journal_list_json = sanitize_json(read_journals_stdin())
+
+	if journal_list_json is None:
+		warn("no input")
+		return
 
 	for journal_json in journal_list_json:
 		journal = Journal.fromdict(journal_json)
