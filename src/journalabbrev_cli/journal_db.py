@@ -171,6 +171,12 @@ def cmd_reserialize(jdb: JournalDB, args: Namespace):
 	info(f"done")
 
 
+def cmd_delete_indexes(jdb: JournalDB, args: Namespace):
+	info(f"deleting database indexes...")
+	jdb.journals.delete_indexes()
+	info(f"done")
+
+
 def cmd_rebuild_indexes(jdb: JournalDB, args: Namespace):
 	info(f"rebuilding database indexes...")
 	jdb.journals.rebuild_indexes()
@@ -307,6 +313,9 @@ def main():
 
 	cmd_reserialize_parser = subparsers.add_parser("reserialize", help = f"reserialize all entries in database")
 	cmd_reserialize_parser.set_defaults(subcommand = cmd_reserialize)
+
+	cmd_delete_indexes_parser = subparsers.add_parser("delete-indexes", help = f"delete database indexes")
+	cmd_delete_indexes_parser.set_defaults(subcommand = cmd_delete_indexes)
 
 	cmd_rebuild_indexes_parser = subparsers.add_parser("rebuild-indexes", help = f"rebuild database indexes")
 	cmd_rebuild_indexes_parser.set_defaults(subcommand = cmd_rebuild_indexes)

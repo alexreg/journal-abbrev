@@ -270,14 +270,26 @@ class JournalList():
 		for id, journal in self:
 			self._jdb._db.put((self._jdb._journals_cf, _pack(id)), _pack(journal, _encode))
 
-	def rebuild_indexes(self):
+	def delete_indexes(self):
 		self._jdb._db.drop_column_family(self._jdb._journal_names_index_cf)
+
+	def rebuild_indexes(self):
+		self.delete_indexes()
+
 		self._jdb._journal_names_index_cf = self._jdb._db.create_column_family(self._jdb._journal_names_index_cf_name, self._jdb._db_col_families[self._jdb._journal_names_index_cf_name])
 
 		for id, journal in self:
 			for name in journal.names:
 				index_name = self.sanitize_journal_name(name).casefold()
 				self._jdb._db.put((self._jdb._journal_names_index_cf, _pack(index_name)), _pack(id))
+
+
+class StringComparator(Comparator):
+	def name(self) -> bytes:
+		return self.__class__.__name__.encode()
+
+	def compare(self, a: bytes, b: bytes) -> int:
+		return _cmp(_unpack(a), _unpack(b))
 
 
 class HierarchicalComparator(Comparator):
@@ -378,7 +390,7 @@ class JournalDB(EventEmitter):
 		self._db_col_families = {
 			self._metadata_cf_name: column_family_options(merge_operator = MetadataMergeOperator()),
 			self._journals_cf_name: column_family_options(),
-			self._journal_names_index_cf_name: column_family_options(comparator = None),
+			self._journal_names_index_cf_name: column_family_options(comparator = StringComparator()),
 		}
 
 	def __repr__(self) -> str:
@@ -406,6 +418,7 @@ class JournalDB(EventEmitter):
 
 		self.emit("upgrade_progress", 0)
 
+		# Upgrade each journal.
 		num_processed = 0
 		num_updated = 0
 		for id, journal in self._journal_list:
