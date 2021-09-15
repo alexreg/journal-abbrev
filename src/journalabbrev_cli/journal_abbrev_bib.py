@@ -28,19 +28,30 @@ journal_name_regex = re.compile(normalize_regex(r"""
 """))
 
 
-def gen_sourcemap_map(journal: Journal, journaltitle: str, abbrev: str, output_io: IO):
-	output_io.write(
-		dedent(rf"""
+def gen_sourcemap_map(output_io: IO, journal: Journal, journaltitle: str, abbrev: str, issn: str):
+	journaltitle = abbrev or journaltitle
+	issn_step_code = f"\step[fieldset = issn, fieldvalue = {{{issn}}}]" if issn else ""
+
+	write_tex_code(output_io,
+		rf"""
 			\DeclareSourcemap{{
 				\maps[datatype = bibtex]{{
-					\map[overwrite, foreach={{journal, journaltitle}}]{{
-						\step[fieldsource=\regexp{{$MAPLOOP}}, matchi={{{journaltitle}}}, replace={{{abbrev or journaltitle}}}]
+					\map[overwrite, foreach = {{journal, journaltitle}}]{{
+						\step[fieldsource = \regexp{{$MAPLOOP}}, matchi = {{^{re.escape(journaltitle)}$}}, final]
+						\step[fieldset = \regexp{{$MAPLOOP}}, fieldvalue = {{{journaltitle}}}]
+						{issn_step_code}
 					}}
 				}}
 			}}
-		""").lstrip()
+		"""
 	)
 	output_io.write("\n")
+
+
+def write_tex_code(output_io: IO, code: str):
+	lines = dedent(code).splitlines()
+	non_empty_lines = (l + "\n" for l in lines if l)
+	output_io.writelines(non_empty_lines)
 
 
 def proc_bib(input_io: TextIOWrapper, output_io: TextIOWrapper, jdb: JournalDB, silent: bool = False, output_format: str = "bib", abbrev_type = "iso4"):
@@ -79,11 +90,13 @@ def proc_bib(input_io: TextIOWrapper, output_io: TextIOWrapper, jdb: JournalDB, 
 		if res:
 			_, journal = res
 			abbrev = getattr(journal, abbrev_type)
+			issn = ", ".join(filter(None, (journal.issn_web, journal.issn_print)))
 
 			if output_format == "bib":
 				entry["journaltitle"] = f"{{{abbrev or journaltitle}}}"
+				entry["issn"] = entry["issn"] or f"{{{issn}}}"
 			elif output_format == "sourcemap":
-				gen_sourcemap_map(journal, journaltitle, abbrev, output_io)
+				gen_sourcemap_map(output_io, journal, journaltitle, abbrev, issn)
 
 		abbrev_msg = f"abbreviating to '{abbrev}'" if res else f"no abbreviation found"
 		if not silent:
