@@ -1,3 +1,4 @@
+from io import StringIO
 from itertools import islice
 from sys import prefix
 from deepmerge import Merger, STRATEGY_END
@@ -10,7 +11,8 @@ import msgpack
 import os.path
 from packaging.version import Version
 from pymitter import EventEmitter
-from re import Pattern
+import re
+from re import Pattern, RegexFlag
 import rocksdb
 import rocksdb.errors
 from rocksdb.interfaces import *
@@ -25,6 +27,11 @@ JournalID = NewType("JournalID", int)
 
 _EncodeFn = Callable[[Any], Dict]
 _DecodeFn = Callable[[Dict], Any]
+
+
+_ignorable_words_regex = re.compile(normalize_regex(r"""
+	\b(?:(the|a|le|la|les|li|gli|el|los|las|der|die|das)\s|(l)')
+"""), flags = RegexFlag.IGNORECASE)
 
 
 class DBObjectMeta(type):
@@ -163,6 +170,8 @@ class JournalList():
 	def sanitize_journal_name(self, name: str) -> str:
 		import unicodedata
 
+		name = _ignorable_words_regex.sub("", name)
+
 		chars = ["\0"] * len(name)
 		length = 0
 		for char in name:
@@ -259,7 +268,8 @@ class JournalList():
 				return filter(None, (name_to_journal(name) for name in names))
 			elif isinstance(match_value, Pattern):
 				pattern = cast(Pattern[str], match_value)
-				return ((id, self.get(id)) for id, journal in iter(self) for name in journal.names if pattern.fullmatch(name))
+				return ((id, self.get(id)) for name, id in self.iter_name_index() if pattern.fullmatch(name))
+				# return ((id, self.get(id)) for id, journal in iter(self) for name in journal.names if pattern.fullmatch(name))
 
 		return ((id, journal) for id, journal in self if journal.matches(match_key, match_value))
 

@@ -3,6 +3,7 @@ from io import StringIO, TextIOWrapper
 import bibtexparser
 from bibtexparser.bibdatabase import BibDatabase
 from bibtexparser.bwriter import BibTexWriter
+from functools import cache
 import os
 import re
 from re import RegexFlag
@@ -55,21 +56,6 @@ def write_tex_code(output_io: IO, code: str):
 
 
 def proc_bib(input_io: TextIOWrapper, output_io: TextIOWrapper, jdb: JournalDB, silent: bool = False, output_format: str = "bib", abbrev_type = "iso4"):
-	sanitize_journal_name = jdb.journals.sanitize_journal_name
-
-	def get_journal_name_regex(name: str) -> Pattern[str]:
-		match = journal_name_regex.fullmatch(name)
-		assert(match is not None)
-
-		pattern = StringIO()
-		pattern.write(re.escape(sanitize_journal_name(match.group("title"))))
-		if series := match.group("series"):
-			pattern.write(fr" (Series )?{series}")
-		if subtitle := match.group("subtitle"):
-			pass
-
-		return re.compile(fr"{pattern.getvalue()}(?:\:\s.*)?", RegexFlag.IGNORECASE)
-
 	if not hasattr(Journal, abbrev_type):
 		raise ValueError(f"Invalid abbreviation type `{abbrev_type}`")
 
@@ -81,12 +67,8 @@ def proc_bib(input_io: TextIOWrapper, output_io: TextIOWrapper, jdb: JournalDB, 
 			continue
 		journaltitle = journaltitle.strip("{}")
 
-		name_regex = get_journal_name_regex(journaltitle)
-
-		# TODO: query using lambdas or some sort of expression trees?
-		# TODO: normalize names? e.g., remove punctuation, quotes, accents
-		# TODO: use Levenstein distance or similar?
-		res = jdb.journals.query_one(Journal.names_key, name_regex)
+		# TODO: Use Levenstein distance or similar?
+		res = find_journal(jdb, journaltitle)
 		if res:
 			_, journal = res
 			abbrev = getattr(journal, abbrev_type)
@@ -163,6 +145,25 @@ def cmd_proc_bibs(jdb: JournalDB, args: Namespace, *, output_format_arg: Action,
 
 	if not args.silent:
 		info(f"all done.")
+
+
+@cache
+def find_journal(jdb: JournalDB, name: str):
+	match = journal_name_regex.fullmatch(name)
+	assert(match is not None)
+
+	index_name = jdb.journals.sanitize_journal_name(match.group("title")).casefold()
+
+	pattern = StringIO()
+	pattern.write(re.escape(index_name))
+	if series := match.group("series"):
+		pattern.write(fr" (series )?")
+		pattern.write(series.casefold())
+	if subtitle := match.group("subtitle"):
+		pass
+
+	name_regex = re.compile(fr"{pattern.getvalue()}(?:\:\s.*)?")
+	return jdb.journals.query_one(Journal.names_key, name_regex)
 
 
 def main():

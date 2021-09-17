@@ -300,7 +300,7 @@ class MathSciNetFetcher(Fetcher):
 			info = info.strip(".")
 			alt_info = alt_info.strip(".")
 			return info, alt_info, extra_info
-		# TODO: finish implementation.
+		# TODO: Finish implementation.
 		return None, None, None
 
 	def __init__(self):
@@ -429,7 +429,7 @@ class MathSciNetFetcher(Fetcher):
 				extra_info = normalize_field(entry_match.group("extra_info"))
 				issn = normalize_field(entry_match.group("issn"))
 
-				# TODO: finish implementation.
+				# TODO: Finish implementation.
 				# print(f"ENTRY: {symbols} / {abbrev} / {info} / {alt_info} / {extra_info} / {issn}")
 				name, alt_name, publisher = self._extract_info(info, alt_info, extra_info)
 				print(f"ENTRY: {name} / {alt_name} / {publisher}")
