@@ -151,8 +151,8 @@ def fetch_source(name: str, jdb: JournalDB, overwrite: bool = False) -> bool:
 			else:
 				num_journals_updated += 1
 		else:
-			journal_names_str = ", ".join(journal.names)
-			warn("multiple journals in database with names matching `{journal_names_str}`; not merging")
+			journal_names_str = ", ".join(f"`{name}`" for name in journal.names)
+			warn(f"multiple journals in database with names matching {journal_names_str}; not merging")
 			num_warnings += 1
 
 		num_journals_processed += 1
@@ -217,7 +217,7 @@ def cmd_add_journals(jdb: JournalDB, args: Namespace):
 				info(f"merged with journal #{id} in database: {journal.asdict()}")
 		else:
 			journal_names_str = ", ".join(journal.names)
-			error("multiple journals in database with names matching `{journal_names_str}`; not merging")
+			error(f"multiple journals in database with names matching `{journal_names_str}`; not merging")
 
 
 def cmd_remove_journals(jdb: JournalDB, args: Namespace):
