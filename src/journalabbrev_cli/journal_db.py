@@ -1,23 +1,22 @@
-from argparse import Action, ArgumentError, ArgumentParser, Namespace
 import inspect
 import io
-from itertools import *
-import json5
 import os
-from progressbar import ProgressBar
 import re
-from re import M, RegexFlag
 import signal
 import sys
+from argparse import Action, ArgumentError, ArgumentParser, Namespace
+from itertools import *
+from re import M, RegexFlag
 from typing import *
 
+import json5
 from journalabbrev.common import *
 from journalabbrev.db import *
 from journalabbrev.fetcher import *
+from progressbar import ProgressBar
 
 from journalabbrev_cli.common import *
 from journalabbrev_cli.db import *
-
 
 JournalQuery = Tuple[str, Union[str, Pattern[str]]]
 

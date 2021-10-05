@@ -1,22 +1,21 @@
-from argparse import Action, ArgumentError, ArgumentParser, Namespace
-from io import StringIO, TextIOWrapper
-import bibtexparser
-from bibtexparser.bibdatabase import BibDatabase
-from bibtexparser.bwriter import BibTexWriter
-from functools import cache
 import os
 import re
-from re import RegexFlag
 import sys
+from argparse import Action, ArgumentError, ArgumentParser, Namespace
+from functools import cache
+from io import StringIO, TextIOWrapper
+from re import RegexFlag
 from textwrap import dedent
 from typing import *
 
+import bibtexparser
+from bibtexparser.bibdatabase import BibDatabase
+from bibtexparser.bwriter import BibTexWriter
 from journalabbrev.common import *
 from journalabbrev.db import *
 
 from journalabbrev_cli.common import *
 from journalabbrev_cli.db import *
-
 
 if not TYPE_CHECKING:
 	IO = Any
