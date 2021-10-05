@@ -38,7 +38,7 @@ def gen_sourcemap_map(output_io: IO, journal: Journal, journaltitle: str, abbrev
 				\maps[datatype = bibtex]{{
 					\map[overwrite, foreach = {{journal, journaltitle}}]{{
 						\step[fieldsource = \regexp{{$MAPLOOP}}, matchi = {{^{re.escape(journaltitle)}$}}, final]
-						\step[fieldset = \regexp{{$MAPLOOP}}, fieldvalue = {{{new_journaltitle}}}]
+						\step[fieldset = \regexp{{$MAPLOOP}}, fieldvalue = {{{{{new_journaltitle}}}}}]
 						{issn_step_code}
 					}}
 				}}
