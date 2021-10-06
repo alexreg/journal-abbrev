@@ -4,6 +4,7 @@ import os
 import re
 import signal
 import sys
+import textwrap
 from argparse import Action, ArgumentError, ArgumentParser, Namespace
 from itertools import *
 from re import M, RegexFlag
@@ -29,6 +30,34 @@ trailing_brackets_regex = re.compile(r" \(.+?\)$", RegexFlag.IGNORECASE)
 no_space_after_dot_regex = re.compile(r"\.(\w)") # group is for upper-case character
 
 
+def journal_json_default(obj: Any) -> Any:
+	if isinstance(obj, set):
+		return list(obj)
+	elif isinstance(obj, DBObject):
+		return cast(DBObject, obj).asdict()
+
+	raise TypeError(f"Unknown type: {obj!r}")
+
+
+def json_to_journal(d: Dict[str, Any]) -> Journal:
+	journal = Journal()
+	attrs = get_pub_attrs_cached(Journal)
+	for k, v in d.items():
+		if attrs.get(k) is set:
+			v = set(v)
+		setattr(journal, k, v)
+
+	return journal
+
+
+def print_journal(journal: Journal, indent: bool = False) -> str:
+	s = json5.dumps(journal,
+		default = journal_json_default,
+		indent = 4,
+	)
+	print(textwrap.indent(s, "    ") if indent else s)
+
+
 def find_fetch_sources():
 	import journalabbrev.fetcher
 
@@ -42,16 +71,11 @@ def find_fetch_sources():
 	fetcher_map = {normalize_name(getattr(typ, name_attr)): typ for typ in fetcher_classes}
 
 
-def read_journals_stdin():
-	def object_hook(dct):
-		if "names" in dct:
-			dct["names"] = set(dct["names"])
-		return dct
-
+def read_json_journals_stdin():
 	buffered_stdin = cast(io.BufferedReader, sys.stdin.buffer)
 	if not buffered_stdin.peek(1):
 		return None
-	json_input = json5.load(buffered_stdin, object_hook = object_hook)
+	json_input = json5.load(buffered_stdin)
 	if not isinstance(json_input, list):
 		return [json_input]
 	return json_input
@@ -68,7 +92,7 @@ def get_journal_queries(args: Namespace) -> Iterator[Union[JournalID, JournalQue
 			pattern = re.compile(fr"^{name}$", RegexFlag.IGNORECASE)
 			yield Journal.names_key, pattern
 	else:
-		journal_list_json = sanitize_json(read_journals_stdin())
+		journal_list_json = read_json_journals_stdin()
 
 		for journal_json in journal_list_json:
 			journal_json = cast(dict, journal_json)
@@ -190,31 +214,34 @@ def cmd_info(jdb: JournalDB, args: Namespace):
 
 
 def cmd_add_journals(jdb: JournalDB, args: Namespace):
-	journal_list_json = sanitize_json(read_journals_stdin())
-
+	journal_list_json = read_json_journals_stdin()
 	if journal_list_json is None:
 		warn("no input")
 		return
 
 	for journal_json in journal_list_json:
-		journal = Journal.fromdict(journal_json)
+		journal_json = cast(dict, journal_json)
+		journal = json_to_journal(journal_json)
 
 		if not journal.names:
-			warn(f"journal has no '{Journal.names_key}' key; not adding: {journal_json}")
+			warn(f"journal has no '{Journal.names_key}' key; not adding: {journal}")
 			continue
 
 		found_journals = list(jdb.journals.query(Journal.names_key, journal.names))
 		if len(found_journals) == 0:
 			id = jdb.journals.add(journal)
-			info(f"added journal #{id} to database: {journal.asdict()}")
+			info(f"added journal #{id} to database:")
+			print_journal(journal, indent = True)
 		elif len(found_journals) == 1:
 			id, journal_old = found_journals[0]
 			if args.overwrite:
 				jdb.journals.update(id, journal, journal_old)
-				info(f"replaced journal #{id} in database: {journal.asdict()}")
+				info(f"replaced journal #{id} in database:")
+				print_journal(journal, indent = True)
 			else:
-				jdb.journals.merge(id, journal, journal_old)
-				info(f"merged with journal #{id} in database: {journal.asdict()}")
+				journal_merged = jdb.journals.merge(id, journal, journal_old)
+				info(f"merged with journal #{id} in database:")
+				print_journal(journal_merged, indent = True)
 		else:
 			journal_names_str = ", ".join(journal.names)
 			error(f"multiple journals in database with names matching `{journal_names_str}`; not merging")
@@ -256,7 +283,8 @@ def cmd_get_journals(jdb: JournalDB, args: Namespace):
 	if journals:
 		info(f"found {len(journals)} matching journal(s) in database")
 		for id, journal in journals:
-			info(f"journal #{id:,}: {journal.asdict()}")
+			info(f"journal #{id:,}:")
+			print_journal(journal, indent = True)
 	else:
 		warn(f"did not find any matching journals")
 

@@ -71,7 +71,7 @@ class DBObject():
 	@classmethod
 	def fromdict(cls, d: Dict[str, Any]) -> 'DBObject':
 		o = cls()
-		o.__dict__ = d
+		o.__dict__.update(d)
 		return o
 
 	def __init__(self):
@@ -82,8 +82,8 @@ class DBObject():
 		return f"<{type(self).__name__}{attr_values}>"
 
 	def asdict(self) -> Dict[str, Any]:
-		attrs = ((name, getattr(self, name)) for name, _ in get_pub_attrs(self).items())
-		return { name: value for name, value in attrs if value is not None }
+		attrs = ((name, getattr(self, name)) for name, _ in get_pub_attrs_cached(type(self)).items())
+		return {name: value for name, value in attrs if value is not None}
 
 
 @class_init
@@ -236,12 +236,13 @@ class JournalList():
 		if new_batch:
 			self._jdb._db.write(batch)
 
-	def merge(self, id: JournalID, journal_new: Journal, journal_old: Optional[Journal] = None, batch: rocksdb.WriteBatch = None):
+	def merge(self, id: JournalID, journal_new: Journal, journal_old: Optional[Journal] = None, batch: rocksdb.WriteBatch = None) -> Journal:
 		if journal_old is None:
 			journal_old = self.get(id)
 
 		journal_merged = Journal.merge(journal_old, journal_new)
 		self.update(id, journal_merged, journal_old, batch)
+		return journal_merged
 
 	def query(self, match_key: str, match_value: Union[str, Pattern[str]]) -> Iterator[Tuple[JournalID, Journal]]:
 		def name_to_id(name: str) -> Optional[JournalID]:
@@ -521,15 +522,17 @@ def _encode(obj: Any) -> Any:
 	if isinstance(obj, set):
 		return msgpack.ExtType(1, msgpack.packb(tuple(obj), default = _encode))
 	elif isinstance(obj, Journal):
-		return msgpack.ExtType(10, msgpack.packb(obj.asdict(), default = _encode))
-	raise TypeError(f"Unknown type {type(obj)}")
+		return msgpack.ExtType(10, msgpack.packb(cast(Journal, obj).asdict(), default = _encode))
+
+	raise TypeError(f"Unknown type: {obj!r}")
 
 
 def _decode(code: int, data: Any) -> Any:
 	if code == 1:
-		return set(msgpack.unpackb(data, ext_hook = _decode))
+		return set(cast(Tuple, msgpack.unpackb(data, ext_hook = _decode)))
 	elif code == 10:
-		return Journal.fromdict(msgpack.unpackb(data, ext_hook = _decode))
+		return Journal.fromdict(cast(Dict, msgpack.unpackb(data, ext_hook = _decode)))
+
 	return msgpack.ExtType(code, data)
 
 

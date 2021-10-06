@@ -76,6 +76,11 @@ def get_pub_attrs(obj: Any) -> Dict[str, Type]:
 	return attrs
 
 
+@cache
+def get_pub_attrs_cached(obj: Any) -> Dict[str, Type]:
+	return get_pub_attrs(obj)
+
+
 def normalize_regex(pattern: str) -> str:
 	return "".join(line.lstrip() for line in pattern.splitlines())
 
@@ -118,22 +123,6 @@ def merge_strategy_xor(config, path, base, nxt):
 	if type(base) == type(nxt) and base == nxt:
 		return base
 	return STRATEGY_END
-
-
-def sanitize_json(value):
-	if isinstance(value, dict):
-		value = cast(dict, value)
-		for cur_key, cur_value in value.items():
-			value[cur_key] = sanitize_json(cur_value)
-	elif isinstance(value, list):
-		value = cast(list, value)
-		for i, cur_value in enumerate(value):
-			value[i] = sanitize_json(cur_value)
-	elif isinstance(value, str):
-		value = cast(str, value).strip()
-		if not value:
-			return None
-	return value
 
 
 app_name = "journal-abbrev"
