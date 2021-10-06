@@ -20,7 +20,6 @@ from journalabbrev_cli.db import *
 
 JournalQuery = Tuple[str, Union[str, Pattern[str]]]
 
-
 is_canceling = False
 fetchers = []
 

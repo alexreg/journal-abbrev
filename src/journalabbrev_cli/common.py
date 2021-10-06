@@ -1,6 +1,7 @@
-from progressbar.bar import ProgressBar
 import sys
 from typing import *
+
+from progressbar.bar import ProgressBar
 
 
 class FatalError(Exception):

@@ -1,23 +1,23 @@
+import json
+import re
 from abc import *
+from decimal import *
 from io import StringIO
+from itertools import *
+from re import RegexFlag
+
+import pdfplumber
+import requests
 from bs4 import BeautifulSoup
 from bs4.element import PageElement
-from decimal import *
-import json
-from itertools import *
 from more_itertools import peekable, windowed
 from more_itertools.more import replace
 from pdfminer.converter import PDFPageAggregator
 from pdfminer.pdfinterp import PDFPageInterpreter
-import pdfplumber
-import re
-from re import RegexFlag
-import requests
 
 from .common import *
 from .db import *
 from .pdf import *
-
 
 PDFChar = Dict
 

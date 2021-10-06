@@ -1,33 +1,32 @@
+import os.path
+import re
 from io import StringIO
 from itertools import islice
+from re import Pattern, RegexFlag
 from sys import prefix
-from deepmerge import Merger, STRATEGY_END
+from typing import *
+
+import msgpack
+import rocksdb
+import rocksdb.errors
+from deepmerge import STRATEGY_END, Merger
 from deepmerge.exception import InvalidMerge
 from deepmerge.strategy.dict import DictStrategies
 from deepmerge.strategy.fallback import FallbackStrategies
 from deepmerge.strategy.list import ListStrategies
 from deepmerge.strategy.type_conflict import TypeConflictStrategies
-import msgpack
-import os.path
 from packaging.version import Version
 from pymitter import EventEmitter
-import re
-from re import Pattern, RegexFlag
-import rocksdb
-import rocksdb.errors
 from rocksdb.interfaces import *
-from typing import *
 from varname import argname
 
 from . import *
 from .common import *
 
-
 JournalID = NewType("JournalID", int)
 
 _EncodeFn = Callable[[Any], Dict]
 _DecodeFn = Callable[[Dict], Any]
-
 
 _ignorable_words_regex = re.compile(normalize_regex(r"""
 	\b(?:(the|a|le|la|les|li|gli|el|los|las|der|die|das)\s|(l)')

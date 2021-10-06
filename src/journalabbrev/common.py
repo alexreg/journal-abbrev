@@ -1,10 +1,12 @@
-from appdirs import *
-from deepmerge import STRATEGY_END
-from deepmerge.strategy.core import StrategyList
 import os.path
+from functools import cache
 from os import PathLike
 from re import Match, Pattern
 from typing import *
+
+from appdirs import *
+from deepmerge import STRATEGY_END
+from deepmerge.strategy.core import StrategyList
 
 if not TYPE_CHECKING:
 	IO = Any
