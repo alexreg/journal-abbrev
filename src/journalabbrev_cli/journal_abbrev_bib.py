@@ -20,7 +20,9 @@ from journalabbrev_cli.db import *
 if not TYPE_CHECKING:
 	IO = Any
 
-
+expand_latex_regex = re.compile(normalize_regex(r"""
+	(?:{|}|\\(?P<macro>\w+)|\\(?P<char>\S))
+"""))
 journal_name_regex = re.compile(normalize_regex(r"""
 	(?P<title>.+?)
 	(?:\s(?:[Ss]eries )?(?P<series>[A-Z])\b)?
@@ -28,12 +30,46 @@ journal_name_regex = re.compile(normalize_regex(r"""
 """))
 
 
+@cache
+def expand_latex(s: str) -> str:
+	def repl(m: Match[str]) -> str:
+		macro = m.group("macro")
+		if macro is not None:
+			raise ValueError(f"Unrecognised macro `\{macro}` in LaTeX string.")
+		
+		char = m.group("char")
+		if char is not None:
+			return char
+		
+		return None
+
+	return expand_latex_regex.sub(repl, s)
+
+
+@cache
+def find_journal(jdb: JournalDB, name: str):
+	match = journal_name_regex.fullmatch(name)
+	assert (match is not None)
+
+	index_name = jdb.journals.get_journal_index_name(match.group("title"))
+
+	pattern = StringIO()
+	pattern.write(re.escape(index_name))
+	if series := match.group("series"):
+		pattern.write(fr" (series )?")
+		pattern.write(series.casefold())
+	if subtitle := match.group("subtitle"):
+		pass
+
+	name_regex = re.compile(fr"{pattern.getvalue()}(?:\:\s.*)?")
+	return jdb.journals.query_one(Journal.names_key, name_regex)
+
+
 def gen_sourcemap_map(output_io: IO, journal: Journal, journaltitle: str, abbrev: str, issn: str):
 	new_journaltitle = abbrev or journaltitle
 	issn_step_code = f"\step[fieldset = issn, fieldvalue = {{{issn}}}]" if issn else ""
 
-	write_tex_code(output_io,
-		rf"""
+	write_tex_code(output_io, rf"""
 			\DeclareSourcemap{{
 				\maps[datatype = bibtex]{{
 					\map[overwrite, foreach = {{journal, journaltitle}}]{{
@@ -43,8 +79,7 @@ def gen_sourcemap_map(output_io: IO, journal: Journal, journaltitle: str, abbrev
 					}}
 				}}
 			}}
-		"""
-	)
+		""")
 	output_io.write("\n")
 
 
@@ -64,7 +99,7 @@ def proc_bib(input_io: TextIOWrapper, output_io: TextIOWrapper, jdb: JournalDB, 
 		journaltitle = entry.get("journaltitle")
 		if journaltitle is None:
 			continue
-		journaltitle = journaltitle.strip("{}")
+		journaltitle = expand_latex(journaltitle)
 
 		# TODO: Use Levenstein distance or similar?
 		res = find_journal(jdb, journaltitle)
@@ -146,25 +181,6 @@ def cmd_proc_bibs(jdb: JournalDB, args: Namespace, *, output_format_arg: Action,
 		info(f"all done.")
 
 
-@cache
-def find_journal(jdb: JournalDB, name: str):
-	match = journal_name_regex.fullmatch(name)
-	assert(match is not None)
-
-	index_name = jdb.journals.sanitize_journal_name(match.group("title")).casefold()
-
-	pattern = StringIO()
-	pattern.write(re.escape(index_name))
-	if series := match.group("series"):
-		pattern.write(fr" (series )?")
-		pattern.write(series.casefold())
-	if subtitle := match.group("subtitle"):
-		pass
-
-	name_regex = re.compile(fr"{pattern.getvalue()}(?:\:\s.*)?")
-	return jdb.journals.query_one(Journal.names_key, name_regex)
-
-
 def main():
 	default_arg_help = "(default: %(default)s)"
 
@@ -179,7 +195,9 @@ def main():
 
 	try:
 		with JournalDB() as jdb:
-			cmd_proc_bibs(jdb, args,
+			cmd_proc_bibs(
+				jdb,
+				args,
 				output_format_arg = output_format_arg,
 				output_filenames_arg = output_filenames_arg,
 			)

@@ -166,7 +166,7 @@ class JournalList():
 		it.seek_to_first()
 		return sum(1 for _ in it)
 
-	def sanitize_journal_name(self, name: str) -> str:
+	def _sanitize_journal_name(self, name: str) -> str:
 		import unicodedata
 
 		name = _ignorable_words_regex.sub("", name)
@@ -174,11 +174,14 @@ class JournalList():
 		chars = ["\0"] * len(name)
 		length = 0
 		for char in name:
-			if unicodedata.category(char)[0] in ("L", "N", "Z") or char == ":":
+			if unicodedata.category(char)[0] in ("L", "N", "Z") or char == ":" or char == "&":
 				chars[length] = char
 				length += 1
 
 		return "".join(islice(chars, length))
+	
+	def get_journal_index_name(self, name: str) -> str:
+		return self._sanitize_journal_name(name).casefold()
 
 	def iter_name_index(self) -> Iterator[Tuple[str, JournalID]]:
 		it = self._jdb._db.iteritems(self._jdb._journal_names_index_cf)
@@ -198,8 +201,7 @@ class JournalList():
 		id = self._jdb._gen_journal_id(batch)
 		batch.put((self._jdb._journals_cf, _pack(id)), _pack(journal, _encode))
 		for name in journal.names:
-			index_name = self.sanitize_journal_name(name).casefold()
-			batch.put((self._jdb._journal_names_index_cf, _pack(index_name)), _pack(id))
+			batch.put((self._jdb._journal_names_index_cf, _pack(self.get_journal_index_name(name))), _pack(id))
 		if new_batch:
 			self._jdb._db.write(batch)
 		return id
@@ -212,7 +214,7 @@ class JournalList():
 		batch, new_batch = (rocksdb.WriteBatch(), True) if batch is None else (batch, False)
 		batch.delete((self._jdb._journals_cf, _pack(id)))
 		for name in journal.names:
-			batch.delete((self._jdb._journal_names_index_cf, _pack(name)))
+			batch.delete((self._jdb._journal_names_index_cf, _pack(self.get_journal_index_name(name))))
 		if new_batch:
 			try:
 				self._jdb._db.write(batch)
@@ -230,9 +232,9 @@ class JournalList():
 		batch, new_batch = (rocksdb.WriteBatch(), True) if batch is None else (batch, False)
 		batch.put((self._jdb._journals_cf, _pack(id)), _pack(journal_new, _encode))
 		for name in journal_old.names - journal_new.names:
-			batch.delete((self._jdb._journal_names_index_cf, _pack(name)))
+			batch.delete((self._jdb._journal_names_index_cf, _pack(self.get_journal_index_name(name))))
 		for name in journal_new.names - journal_old.names:
-			batch.put((self._jdb._journal_names_index_cf, _pack(name)), _pack(id))
+			batch.put((self._jdb._journal_names_index_cf, _pack(self.get_journal_index_name(name))), _pack(id))
 		if new_batch:
 			self._jdb._db.write(batch)
 
@@ -246,8 +248,7 @@ class JournalList():
 
 	def query(self, match_key: str, match_value: Union[str, Pattern[str]]) -> Iterator[Tuple[JournalID, Journal]]:
 		def name_to_id(name: str) -> Optional[JournalID]:
-			index_name = self.sanitize_journal_name(name).casefold()
-			id_bytes = self._jdb._db.get((self._jdb._journal_names_index_cf, _pack(index_name)))
+			id_bytes = self._jdb._db.get((self._jdb._journal_names_index_cf, _pack(self.get_journal_index_name(name))))
 			return JournalID(_unpack(id_bytes)) if id_bytes is not None else None
 
 		def name_to_journal(name: str) -> Optional[Tuple[JournalID, Journal]]:
@@ -290,8 +291,7 @@ class JournalList():
 
 		for id, journal in self:
 			for name in journal.names:
-				index_name = self.sanitize_journal_name(name).casefold()
-				self._jdb._db.put((self._jdb._journal_names_index_cf, _pack(index_name)), _pack(id))
+				self._jdb._db.put((self._jdb._journal_names_index_cf, _pack(self.get_journal_index_name(name))), _pack(id))
 
 
 class StringComparator(Comparator):
