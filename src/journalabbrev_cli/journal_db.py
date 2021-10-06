@@ -93,6 +93,7 @@ def get_journal_queries(args: Namespace) -> Iterator[Union[JournalID, JournalQue
 
 			yield key, query_value
 
+
 def fetch_source(name: str, jdb: JournalDB, overwrite: bool = False) -> bool:
 	global is_canceling
 
@@ -359,4 +360,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+	main()

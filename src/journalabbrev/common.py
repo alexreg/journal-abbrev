@@ -31,21 +31,21 @@ class MergeConflict(Exception):
 
 
 class SetStrategies(StrategyList):
-    """
-    Contains the strategies provided for sets.
-    """
+	"""
+	Contains the strategies provided for sets.
+	"""
 
-    NAME = "set"
+	NAME = "set"
 
-    @staticmethod
-    def strategy_override(config, path, base, nxt):
-        """Use the set nxt."""
-        return nxt
+	@staticmethod
+	def strategy_override(config, path, base, nxt):
+		"""Use the set nxt."""
+		return nxt
 
-    @staticmethod
-    def strategy_union(config, path, base, nxt):
-        """Unify nxt with base."""
-        return base | nxt
+	@staticmethod
+	def strategy_union(config, path, base, nxt):
+		"""Unify nxt with base."""
+		return base | nxt
 
 
 def try_int(x: str, base: int = 10) -> Optional[int]:
@@ -59,9 +59,9 @@ def try_int(x: str, base: int = 10) -> Optional[int]:
 
 
 def class_init(cls):
-    if getattr(cls, "__class_init__", None):
-        cls.__class_init__()
-    return cls
+	if getattr(cls, "__class_init__", None):
+		cls.__class_init__()
+	return cls
 
 
 def get_pub_attrs(obj: Any) -> Dict[str, Type]:
