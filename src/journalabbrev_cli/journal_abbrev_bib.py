@@ -49,7 +49,7 @@ def expand_latex(s: str) -> str:
 @cache
 def find_journal(jdb: JournalDB, name: str):
 	match = journal_name_regex.fullmatch(name)
-	assert (match is not None)
+	assert match is not None
 
 	index_name = jdb.journals.get_journal_index_name(match.group("title"))
 

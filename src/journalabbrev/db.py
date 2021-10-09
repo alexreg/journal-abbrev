@@ -254,7 +254,7 @@ class JournalList():
 		def name_to_journal(name: str) -> Optional[Tuple[JournalID, Journal]]:
 			id = name_to_id(name)
 			journal = self.get(id)
-			assert (id is None or journal is not None)
+			assert id is None or journal is not None
 			return (id, journal) if id is not None else None
 
 		if match_key == Journal.names_key:

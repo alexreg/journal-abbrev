@@ -1,16 +1,16 @@
+import re
+import unicodedata
 from decimal import Decimal
 from io import StringIO
+from re import RegexFlag
+from typing import *
+
 from more_itertools import partition, peekable
 from pdfminer.pdffont import PDFCIDFont, PDFFont
 from pdfminer.pdfinterp import PDFPageInterpreter
 from pdfplumber.utils import DEFAULT_X_TOLERANCE, DEFAULT_Y_TOLERANCE, cluster_objects
-import re
-from re import RegexFlag
-from typing import *
-import unicodedata
 
 from .unicode import *
-
 
 PDFChar = Dict
 ProcessPDFCharFn = Callable[[PDFChar], None]
@@ -68,7 +68,7 @@ def sort_line_chars(chars: Sequence[PDFChar], interpreter: PDFPageInterpreter) -
 			yield combining_char
 			next(combining_chars_iter, None)
 
-	assert(next(combining_chars_iter, None) is None)
+	assert next(combining_chars_iter, None) is None
 
 	return
 	yield
