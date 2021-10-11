@@ -14,8 +14,8 @@ from bibtexparser.bwriter import BibTexWriter
 from journalabbrev.common import *
 from journalabbrev.db import *
 
-from journalabbrev_cli.common import *
-from journalabbrev_cli.db import *
+from .common import *
+from .db import *
 
 if not TYPE_CHECKING:
 	IO = Any

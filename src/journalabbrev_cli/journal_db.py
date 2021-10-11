@@ -16,8 +16,8 @@ from journalabbrev.db import *
 from journalabbrev.fetcher import *
 from progressbar import ProgressBar
 
-from journalabbrev_cli.common import *
-from journalabbrev_cli.db import *
+from .common import *
+from .db import *
 
 JournalQuery = Tuple[str, Union[str, Pattern[str]]]
 
