@@ -11,7 +11,7 @@ Run `[tool] -h` for information on how to use each tool.
 Installation
 ------------
 
-This package and the command-line tools can be installed easily using *pip*; simply run the following from the command line (within the directory of the repository).
+This package and its command-line interfaces can be installed easily using *pip*; simply run the following from the command line (within the directory of the repository).
 
 ```sh
 pip3 install .
