@@ -12,6 +12,7 @@ from pdfplumber.utils import DEFAULT_X_TOLERANCE, DEFAULT_Y_TOLERANCE, cluster_o
 
 from .unicode import *
 
+
 PDFChar = Dict
 ProcessPDFCharFn = Callable[[PDFChar], None]
 

@@ -19,6 +19,7 @@ from .common import *
 from .db import *
 from .pdf import *
 
+
 PDFChar = Dict
 
 
