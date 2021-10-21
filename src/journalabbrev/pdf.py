@@ -21,7 +21,7 @@ cid_regex = re.compile(r"\(cid:(\d+)\)", RegexFlag.IGNORECASE)
 
 
 def cmap_char(cid: int, fontname: str, interpreter: PDFPageInterpreter) -> Optional[str]:
-	for font in cast(Sequence[PDFFont], interpreter.fontmap.values()):
+	for font in cast(Iterable[PDFFont], interpreter.fontmap.values()):
 		if fontname.casefold() == font.fontname.casefold():
 			if isinstance(font, PDFCIDFont):
 				font = cast(PDFCIDFont, font)
@@ -52,7 +52,7 @@ def normalize_char(char: PDFChar, interpreter: PDFPageInterpreter, proc_pdf_char
 	return char
 
 
-def sort_line_chars(chars: Sequence[PDFChar], interpreter: PDFPageInterpreter) -> Sequence[PDFChar]:
+def sort_line_chars(chars: Iterable[PDFChar], interpreter: PDFPageInterpreter) -> Iterable[PDFChar]:
 	chars = sorted(chars, key = lambda char: char["x0"])
 	main_chars, combining_chars = partition(lambda char: char["text"] and unicodedata.combining(char["text"]), chars)
 	combining_chars_iter = peekable(iter(combining_chars))
@@ -75,7 +75,7 @@ def sort_line_chars(chars: Sequence[PDFChar], interpreter: PDFPageInterpreter) -
 	yield
 
 
-def extract_text2(chars: Sequence[PDFChar], interpreter: PDFPageInterpreter, proc_pdf_char: Optional[ProcessPDFCharFn] = None, min_tab_width: Optional[Decimal] = None, x_tolerance: Decimal = DEFAULT_X_TOLERANCE, y_tolerance: Decimal = DEFAULT_Y_TOLERANCE) -> str:
+def extract_text2(chars: Iterable[PDFChar], interpreter: PDFPageInterpreter, proc_pdf_char: Optional[ProcessPDFCharFn] = None, min_tab_width: Optional[Decimal] = None, x_tolerance: Decimal = DEFAULT_X_TOLERANCE, y_tolerance: Decimal = DEFAULT_Y_TOLERANCE) -> str:
 	text = StringIO()
 
 	lines = cluster_objects(chars, "top", y_tolerance)
