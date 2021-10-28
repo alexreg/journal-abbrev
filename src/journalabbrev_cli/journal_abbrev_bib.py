@@ -47,7 +47,7 @@ def expand_latex(s: str) -> str:
 
 
 @cache
-def find_journal(jdb: JournalDB, name: str):
+def find_journal(jdb: JournalDB, name: str) -> Optional[Tuple[JournalID, Journal]]:
 	match = journal_name_regex.fullmatch(name)
 	assert match is not None
 
@@ -65,7 +65,7 @@ def find_journal(jdb: JournalDB, name: str):
 	return jdb.journals.query_one(Journal.names_key, name_regex)
 
 
-def gen_sourcemap_map(output_io: IO, journal: Journal, journaltitle: str, abbrev: str, issn: str):
+def gen_sourcemap_map(output_io: IO, journal: Journal, journaltitle: str, abbrev: str, issn: str) -> None:
 	new_journaltitle = abbrev or journaltitle
 	issn_step_code = f"\step[fieldset = issn, fieldvalue = {{{issn}}}]" if issn else ""
 
@@ -83,13 +83,13 @@ def gen_sourcemap_map(output_io: IO, journal: Journal, journaltitle: str, abbrev
 	output_io.write("\n")
 
 
-def write_tex_code(output_io: IO, code: str):
+def write_tex_code(output_io: IO, code: str) -> None:
 	lines = dedent(code).splitlines()
 	non_empty_lines = (l + "\n" for l in lines if l)
 	output_io.writelines(non_empty_lines)
 
 
-def proc_bib(input_io: TextIOWrapper, output_io: TextIOWrapper, jdb: JournalDB, silent: bool = False, output_format: str = "bib", abbrev_type = "iso4"):
+def proc_bib(input_io: TextIOWrapper, output_io: TextIOWrapper, jdb: JournalDB, silent: bool = False, output_format: str = "bib", abbrev_type = "iso4") -> None:
 	if not hasattr(Journal, abbrev_type):
 		raise ValueError(f"Invalid abbreviation type `{abbrev_type}`")
 
@@ -130,8 +130,8 @@ def proc_bib(input_io: TextIOWrapper, output_io: TextIOWrapper, jdb: JournalDB, 
 		pass
 
 
-def cmd_proc_bibs(jdb: JournalDB, args: Namespace, *, output_format_arg: Action, output_filenames_arg: Action):
-	def get_output_filename(filename):
+def cmd_proc_bibs(jdb: JournalDB, args: Namespace, *, output_format_arg: Action, output_filenames_arg: Action) -> None:
+	def get_output_filename(filename: str) -> str:
 		basename, ext = os.path.splitext(filename)
 		if args.output_format == "bib":
 			return basename + "-abbrev" + ext
@@ -181,7 +181,7 @@ def cmd_proc_bibs(jdb: JournalDB, args: Namespace, *, output_format_arg: Action,
 		info(f"all done.")
 
 
-def main():
+def main() -> None:
 	default_arg_help = "(default: %(default)s)"
 
 	parser = ArgumentParser(description = f"Abbreviates journal names in bibliography files.")

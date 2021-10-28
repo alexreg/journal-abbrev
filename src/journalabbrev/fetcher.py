@@ -26,14 +26,14 @@ PDFChar = Dict
 class Fetcher:
 	name: ClassVar[str]
 
-	def __init__(self):
+	def __init__(self) -> None:
 		self._is_canceling = False
 
 	@abstractmethod
 	def fetch(self) -> Iterator[Journal]:
 		pass
 
-	def cancel(self):
+	def cancel(self) -> None:
 		self._is_canceling = True
 
 
@@ -45,7 +45,7 @@ class CasFetcher(Fetcher):
 	name = "CAS"
 	url = r"http://www.cas.org/support/documentation/references/corejournals"
 
-	def __init__(self):
+	def __init__(self) -> None:
 		super().__init__()
 
 	def fetch(self) -> Iterator[Journal]:
@@ -112,7 +112,7 @@ class BeyondCassiFetcher(Fetcher):
 	cassi_text_regex = re.compile(r"CASSI: *(.+?)(?:(?:\.\.\.|…)?\s*\[Note:\s*(.+?)\])?")
 	url_regex = re.compile(r"(\w+)://(.+)")
 
-	def __init__(self):
+	def __init__(self) -> None:
 		super().__init__()
 
 	def fetch(self) -> Iterator[Journal]:
@@ -179,7 +179,7 @@ class UbcFetcher(Fetcher):
 	name = "UBC"
 	url = r"https://journal-abbreviations.library.ubc.ca/dump.php"
 
-	def __init__(self):
+	def __init__(self) -> None:
 		super().__init__()
 
 	def fetch(self) -> Iterator[Journal]:
@@ -219,7 +219,7 @@ class MdpiFetcher(Fetcher):
 	name = "MDPI"
 	url = r"https://www.mdpi.org/molecules/journallist.htm"
 
-	def __init__(self):
+	def __init__(self) -> None:
 		super().__init__()
 
 	def fetch(self) -> Iterator[Journal]:
@@ -301,10 +301,11 @@ class MathSciNetFetcher(Fetcher):
 			info = info.strip(".")
 			alt_info = alt_info.strip(".")
 			return info, alt_info, extra_info
+
 		# TODO: Finish implementation.
 		return None, None, None
 
-	def __init__(self):
+	def __init__(self) -> None:
 		super().__init__()
 
 	def fetch(self) -> Iterator[Journal]:
@@ -327,7 +328,7 @@ class MathSciNetFetcher(Fetcher):
 				def is_font_small(char: PDFChar) -> bool:
 					return char["size"] < small_font_size_threshold
 
-				def process_pdf_char(char: PDFChar):
+				def process_pdf_char(char: PDFChar) -> None:
 					if is_font_small(char):
 						if char["text"] == "o":
 							char["text"] = "°"

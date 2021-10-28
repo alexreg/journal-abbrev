@@ -2,28 +2,29 @@ import sys
 from typing import *
 
 from progressbar.bar import ProgressBar
+from progressbar.widgets import WidgetBase
 
 
 class FatalError(Exception):
-	def __init__(self, exit_status: int = 1):
+	def __init__(self, exit_status: int = 1) -> None:
 		super().__init__()
 		self.exit_status = exit_status
 
 
-def error(message: str):
+def error(message: str) -> None:
 	print("ERROR: " + message, file = sys.stderr, flush = True)
 
 
-def warn(message: str):
+def warn(message: str) -> None:
 	print("WARNING: " + message, file = sys.stderr, flush = True)
 
 
-def info(message: str):
+def info(message: str) -> None:
 	print(message, file = sys.stderr, flush = True)
 
 
-def progressbar_count_widgets(pbar: ProgressBar):
-	from progressbar import widgets
+def progressbar_count_widgets(pbar: ProgressBar) -> Collection[WidgetBase]:
+	import progressbar.widgets as widgets
 
 	if pbar.max_value:
 		return [

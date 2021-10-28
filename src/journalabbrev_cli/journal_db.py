@@ -7,7 +7,8 @@ import sys
 import textwrap
 from argparse import Action, ArgumentError, ArgumentParser, Namespace
 from itertools import *
-from re import M, RegexFlag
+from re import RegexFlag
+from types import FrameType
 from typing import *
 
 import json5
@@ -58,7 +59,7 @@ def print_journal(journal: Journal, indent: bool = False) -> str:
 	print(textwrap.indent(s, "    ") if indent else s)
 
 
-def find_fetch_sources():
+def find_fetch_sources() -> None:
 	import journalabbrev.fetcher
 
 	global fetcher_map
@@ -71,7 +72,7 @@ def find_fetch_sources():
 	fetcher_map = {normalize_name(getattr(typ, name_attr)): typ for typ in fetcher_classes}
 
 
-def read_json_journals_stdin():
+def read_json_journals_stdin() -> None:
 	buffered_stdin = cast(io.BufferedReader, sys.stdin.buffer)
 	if not buffered_stdin.peek(1):
 		return None
@@ -188,32 +189,32 @@ def fetch_source(name: str, jdb: JournalDB, overwrite: bool = False) -> bool:
 	return True
 
 
-def cmd_reserialize(jdb: JournalDB, args: Namespace):
+def cmd_reserialize(jdb: JournalDB, args: Namespace) -> None:
 	info(f"reserialising database entries...")
 	jdb.journals.reserialize()
 	info(f"done")
 
 
-def cmd_delete_indexes(jdb: JournalDB, args: Namespace):
+def cmd_delete_indexes(jdb: JournalDB, args: Namespace) -> None:
 	info(f"deleting database indexes...")
 	jdb.journals.delete_indexes()
 	info(f"done")
 
 
-def cmd_rebuild_indexes(jdb: JournalDB, args: Namespace):
+def cmd_rebuild_indexes(jdb: JournalDB, args: Namespace) -> None:
 	info(f"rebuilding database indexes...")
 	jdb.journals.rebuild_indexes()
 	info(f"done")
 
 
-def cmd_info(jdb: JournalDB, args: Namespace):
+def cmd_info(jdb: JournalDB, args: Namespace) -> None:
 	info(f"db filename: {jdb.filename}")
 	info(f"database schema version: {jdb.schema_version()}")
 	info(f"total # of journals: {len(jdb.journals):,}")
 	info(f"total # of indexed journal names: {sum(1 for _ in jdb.journals.iter_name_index()):,}")
 
 
-def cmd_add_journals(jdb: JournalDB, args: Namespace):
+def cmd_add_journals(jdb: JournalDB, args: Namespace) -> None:
 	journal_list_json = read_json_journals_stdin()
 	if journal_list_json is None:
 		warn("no input")
@@ -247,7 +248,7 @@ def cmd_add_journals(jdb: JournalDB, args: Namespace):
 			error(f"multiple journals in database with names matching `{journal_names_str}`; not merging")
 
 
-def cmd_remove_journals(jdb: JournalDB, args: Namespace):
+def cmd_remove_journals(jdb: JournalDB, args: Namespace) -> None:
 	removed_ids = []
 	for query in get_journal_queries(args):
 		if isinstance(query, JournalID.__supertype__):
@@ -267,7 +268,7 @@ def cmd_remove_journals(jdb: JournalDB, args: Namespace):
 		warn(f"did not find any matching journals")
 
 
-def cmd_get_journals(jdb: JournalDB, args: Namespace):
+def cmd_get_journals(jdb: JournalDB, args: Namespace) -> None:
 	journals = []
 	for query in get_journal_queries(args):
 		if isinstance(query, JournalID.__supertype__):
@@ -289,10 +290,10 @@ def cmd_get_journals(jdb: JournalDB, args: Namespace):
 		warn(f"did not find any matching journals")
 
 
-def cmd_list_fetch_sources(jdb: JournalDB, args: Namespace):
+def cmd_list_fetch_sources(jdb: JournalDB, args: Namespace) -> None:
 	source_name_regex = re.compile("^Source: (.*?)$", flags = RegexFlag.MULTILINE)
 
-	def get_source_name(cls):
+	def get_source_name(cls: Type) -> Optional[str]:
 		docstring = inspect.getdoc(cls)
 		match = source_name_regex.search(docstring)
 		return match.group(1) if match else None
@@ -302,7 +303,7 @@ def cmd_list_fetch_sources(jdb: JournalDB, args: Namespace):
 		info(f"{id}: {get_source_name(cls) or '?'}" + url_msg_part)
 
 
-def cmd_fetch_sources(jdb: JournalDB, args: Namespace):
+def cmd_fetch_sources(jdb: JournalDB, args: Namespace) -> None:
 	sources = args.sources
 
 	if args.overwrite:
@@ -317,7 +318,7 @@ def cmd_fetch_sources(jdb: JournalDB, args: Namespace):
 	info(f"all done: {len(jdb.journals):,} journal(s) in total")
 
 
-def signal_handler(signum, frame):
+def signal_handler(signum, frame: FrameType) -> None:
 	global is_canceling
 
 	is_canceling = True
@@ -327,7 +328,7 @@ def signal_handler(signum, frame):
 			fetcher.cancel()
 
 
-def main():
+def main() -> None:
 	signal.signal(signal.SIGINT, signal_handler)
 
 	find_fetch_sources()

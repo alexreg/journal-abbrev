@@ -1,6 +1,5 @@
 import os.path
 import re
-from io import StringIO
 from itertools import islice
 from re import Pattern, RegexFlag
 from sys import prefix
@@ -74,7 +73,7 @@ class DBObject():
 		o.__dict__.update(d)
 		return o
 
-	def __init__(self):
+	def __init__(self) -> None:
 		pass
 
 	def __repr__(self) -> str:
@@ -97,7 +96,7 @@ class Journal(DBObject, metaclass = DBObjectMeta):
 	coden: Optional[str] = None
 
 	@classmethod
-	def __class_init__(cls):
+	def __class_init__(cls: Type) -> Type:
 		cls._merger = Merger(
 			[
 				(set, SetStrategies.strategy_union),
@@ -113,7 +112,7 @@ class Journal(DBObject, metaclass = DBObjectMeta):
 	def merge(cls, base: 'Journal', nxt: 'Journal') -> 'Journal':
 		return cls._merger.merge(base, nxt)
 
-	def __init__(self):
+	def __init__(self) -> None:
 		super().__init__()
 		self.names = set()
 
@@ -149,10 +148,10 @@ class Journal(DBObject, metaclass = DBObjectMeta):
 class JournalList():
 	_jdb: 'JournalDB'
 
-	def __init__(self, jdb: 'JournalDB'):
+	def __init__(self, jdb: 'JournalDB') -> None:
 		self._jdb = jdb
 
-	def __repr__(self):
+	def __repr__(self) -> str:
 		return f"<{type(self).__name__} count={len(self)!r}>"
 
 	def __iter__(self) -> Iterator[Tuple[JournalID, Journal]]:
@@ -161,7 +160,7 @@ class JournalList():
 		for (_, key), value in it:
 			yield _unpack(key), _unpack(value, _decode)
 
-	def __len__(self):
+	def __len__(self) -> int:
 		it = self._jdb._db.iterkeys(self._jdb._journals_cf)
 		it.seek_to_first()
 		return sum(1 for _ in it)
@@ -225,7 +224,7 @@ class JournalList():
 
 		return True
 
-	def update(self, id: JournalID, journal_new: Journal, journal_old: Optional[Journal] = None, batch: rocksdb.WriteBatch = None):
+	def update(self, id: JournalID, journal_new: Journal, journal_old: Optional[Journal] = None, batch: rocksdb.WriteBatch = None) -> None:
 		if journal_old is None:
 			journal_old = self.get(id)
 
@@ -277,14 +276,14 @@ class JournalList():
 	def query_one(self, match_key: str, match_value: Union[str, Pattern[str]]) -> Optional[Tuple[JournalID, Journal]]:
 		return next(self.query(match_key, match_value), None)
 
-	def reserialize(self):
+	def reserialize(self) -> None:
 		for id, journal in self:
 			self._jdb._db.put((self._jdb._journals_cf, _pack(id)), _pack(journal, _encode))
 
-	def delete_indexes(self):
+	def delete_indexes(self) -> None:
 		self._jdb._db.drop_column_family(self._jdb._journal_names_index_cf)
 
-	def rebuild_indexes(self):
+	def rebuild_indexes(self) -> None:
 		self.delete_indexes()
 
 		self._jdb._journal_names_index_cf = self._jdb._db.create_column_family(self._jdb._journal_names_index_cf_name, self._jdb._db_col_families[self._jdb._journal_names_index_cf_name])
@@ -374,7 +373,7 @@ class JournalDB(EventEmitter):
 	_journals_cf: rocksdb.ColumnFamilyHandle = None
 	_journal_names_index_cf: rocksdb.ColumnFamilyHandle = None
 
-	def __init__(self, force_upgrade_schema = False):
+	def __init__(self, force_upgrade_schema = False) -> None:
 		def column_family_options(comparator: Optional[Comparator] = None, prefix_extractor: Optional[SliceTransform] = None, merge_operator: Optional[Union[MergeOperator, AssociativeMergeOperator]] = None) -> rocksdb.ColumnFamilyOptions:
 			opts = rocksdb.ColumnFamilyOptions()
 			if comparator is not None:
@@ -410,15 +409,15 @@ class JournalDB(EventEmitter):
 		self.open()
 		return self
 
-	def __exit__(self, exc_type, exc_value, traceback):
+	def __exit__(self, exc_type, exc_value, traceback) -> bool:
 		self.close()
 		return False
 
 	@property
-	def filename(self):
+	def filename(self) -> str:
 		return self._filename
 
-	def _upgrade_schema(self, cur_schema_version: Version):
+	def _upgrade_schema(self, cur_schema_version: Version) -> None:
 		self.emit("upgrade_started", cur_schema_version, self.latest_schema_version, len(self._journal_list))
 
 		def update_journal(id: JournalID, journal: Journal) -> Optional[Journal]:
@@ -444,10 +443,10 @@ class JournalDB(EventEmitter):
 
 		self.emit("upgrade_finished", self.latest_schema_version, len(self._journal_list))
 
-	def repair(self):
+	def repair(self) -> None:
 		self._db.repair_db(self._filename, self._db_opts)
 
-	def open(self):
+	def open(self) -> None:
 		db_exists = os.path.exists(self._filename)
 
 		self._db = rocksdb.DB(self._filename, self._db_opts, column_families = self._db_col_families)
@@ -473,7 +472,7 @@ class JournalDB(EventEmitter):
 
 				self._upgrade_schema(cur_schema_version)
 
-	def close(self):
+	def close(self) -> None:
 		if self._db is not None:
 			self._db.close()
 			self._db = None
@@ -484,10 +483,10 @@ class JournalDB(EventEmitter):
 	def _get_metadata(self, key: bytes, decode_fn: _DecodeFn = None) -> Optional[Any]:
 		return _unpack(self._db.get((self._metadata_cf, key)), fn = decode_fn)
 
-	def _put_metadata(self, key: bytes, value: Any, batch: rocksdb.WriteBatch = None, encode_fn: _EncodeFn = None):
+	def _put_metadata(self, key: bytes, value: Any, batch: rocksdb.WriteBatch = None, encode_fn: _EncodeFn = None) -> None:
 		(batch or self._db).put((self._metadata_cf, key), _pack(value, encode_fn))
 
-	def _merge_metadata(self, key: bytes, value: Any, batch: rocksdb.WriteBatch = None, encode_fn: _EncodeFn = None):
+	def _merge_metadata(self, key: bytes, value: Any, batch: rocksdb.WriteBatch = None, encode_fn: _EncodeFn = None) -> None:
 		(batch or self._db).merge((self._metadata_cf, key), _pack(value, encode_fn))
 
 	def _gen_journal_id(self, batch: rocksdb.WriteBatch = None) -> JournalID:

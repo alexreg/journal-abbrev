@@ -1,5 +1,6 @@
 import os.path
 from functools import cache
+from io import BytesIO
 from os import PathLike
 from re import Match, Pattern
 from typing import *
@@ -21,12 +22,12 @@ V = TypeVar('V')
 
 
 class ProcessingError(Exception):
-	def __init__(self, message: str):
+	def __init__(self, message: str) -> None:
 		super().__init__(message)
 
 
 class MergeConflict(Exception):
-	def __init__(self, *args: object):
+	def __init__(self, *args: object) -> None:
 		super().__init__(*args)
 
 
@@ -58,9 +59,10 @@ def try_int(x: str, base: int = 10) -> Optional[int]:
 		return None
 
 
-def class_init(cls):
+def class_init(cls: Type) -> Type:
 	if getattr(cls, "__class_init__", None):
 		cls.__class_init__()
+
 	return cls
 
 
@@ -95,8 +97,7 @@ def ensure_dir(path: PathLike) -> PathLike:
 	return path
 
 
-def cache_in_memory(io: BinaryIO, size = None):
-	from io import BytesIO
+def cache_in_memory(io: BinaryIO, size = None) -> BytesIO:
 	mem_buf = BytesIO()
 	if size is not None:
 		mem_buf.truncate(size)
@@ -106,7 +107,7 @@ def cache_in_memory(io: BinaryIO, size = None):
 	return mem_buf
 
 
-def cache_in_fs(io: BinaryIO):
+def cache_in_fs(io: BinaryIO) -> IO:
 	from tempfile import TemporaryFile
 	tmp_file = TemporaryFile()
 	for chunk in io.iter_content(chunk_size = 0xFFF):
