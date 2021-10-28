@@ -17,6 +17,7 @@ from journalabbrev.db import *
 from .common import *
 from .db import *
 
+
 if not TYPE_CHECKING:
 	IO = Any
 
@@ -36,11 +37,11 @@ def expand_latex(s: str) -> str:
 		macro = m.group("macro")
 		if macro is not None:
 			raise ValueError(f"Unrecognised macro `\{macro}` in LaTeX string.")
-		
+
 		char = m.group("char")
 		if char is not None:
 			return char
-		
+
 		return None
 
 	return expand_latex_regex.sub(repl, s)
@@ -99,6 +100,7 @@ def proc_bib(input_io: TextIOWrapper, output_io: TextIOWrapper, jdb: JournalDB, 
 		journaltitle = entry.get("journaltitle")
 		if journaltitle is None:
 			continue
+
 		journaltitle = expand_latex(journaltitle)
 
 		# TODO: Use Levenstein distance or similar?

@@ -20,6 +20,7 @@ from progressbar import ProgressBar
 from .common import *
 from .db import *
 
+
 JournalQuery = Tuple[str, Union[str, Pattern[str]]]
 
 is_canceling = False
@@ -76,9 +77,11 @@ def read_json_journals_stdin() -> None:
 	buffered_stdin = cast(io.BufferedReader, sys.stdin.buffer)
 	if not buffered_stdin.peek(1):
 		return None
+
 	json_input = json5.load(buffered_stdin)
 	if not isinstance(json_input, list):
 		return [json_input]
+
 	return json_input
 
 

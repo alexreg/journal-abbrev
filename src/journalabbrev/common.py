@@ -9,6 +9,7 @@ from appdirs import *
 from deepmerge import STRATEGY_END
 from deepmerge.strategy.core import StrategyList
 
+
 if not TYPE_CHECKING:
 	IO = Any
 	BinaryIO = Any
@@ -94,6 +95,7 @@ def sub_or_none(pattern: Pattern, repl: Union[AnyStr, Callable[[Match[AnyStr]], 
 def ensure_dir(path: PathLike) -> PathLike:
 	if not os.path.exists(path):
 		os.mkdir(path)
+
 	return path
 
 
@@ -103,15 +105,18 @@ def cache_in_memory(io: BinaryIO, size = None) -> BytesIO:
 		mem_buf.truncate(size)
 	for chunk in io.iter_content(chunk_size = 0xFFF):
 		mem_buf.write(chunk)
+
 	mem_buf.seek(0)
 	return mem_buf
 
 
 def cache_in_fs(io: BinaryIO) -> IO:
 	from tempfile import TemporaryFile
+
 	tmp_file = TemporaryFile()
 	for chunk in io.iter_content(chunk_size = 0xFFF):
 		tmp_file.write(chunk)
+
 	tmp_file.seek(0)
 	return tmp_file
 
@@ -123,6 +128,7 @@ def merge_strategy_xor(config, path, base, nxt):
 		return base
 	if type(base) == type(nxt) and base == nxt:
 		return base
+
 	return STRATEGY_END
 
 

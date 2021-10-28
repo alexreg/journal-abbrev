@@ -28,7 +28,7 @@ def cmap_char(cid: int, fontname: str, interpreter: PDFPageInterpreter) -> Optio
 				return font.to_unichr(cid)
 			else:
 				return None
-			break
+
 	raise ValueError(f"Font '{fontname}' not  found")
 
 

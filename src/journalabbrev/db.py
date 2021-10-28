@@ -22,6 +22,7 @@ from varname import argname
 from . import *
 from .common import *
 
+
 JournalID = NewType("JournalID", int)
 
 _EncodeFn = Callable[[Any], Dict]
@@ -65,6 +66,7 @@ class DBObject():
 				setattr(base, attr_name, attr_value)
 			else:
 				setattr(base, attr_name, config.value_strategy(path + [attr_name], base_attr_value, attr_value))
+
 		return base
 
 	@classmethod
@@ -178,7 +180,7 @@ class JournalList():
 				length += 1
 
 		return "".join(islice(chars, length))
-	
+
 	def get_journal_index_name(self, name: str) -> str:
 		return self._sanitize_journal_name(name).casefold()
 
@@ -312,6 +314,7 @@ class HierarchicalComparator(Comparator):
 			a_b_cmp = _cmp(a_part, b_part)
 			if a_b_cmp != 0:
 				return a_b_cmp
+
 		return _cmp(len(a_parts), len(b_parts))
 
 
@@ -356,6 +359,7 @@ class MetadataMergeOperator(AssociativeMergeOperator):
 			if key == JournalDB._journal_id_key:
 				new_value = cast(int, _unpack(existing_value)) + cast(int, _unpack(value))
 				return (True, _pack(new_value))
+
 		return (True, value)
 
 
