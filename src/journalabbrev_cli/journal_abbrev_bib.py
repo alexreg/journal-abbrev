@@ -70,11 +70,15 @@ def gen_sourcemap_map(output_io: IO, journal: Journal, journaltitle: str, abbrev
 	new_journaltitle = abbrev or journaltitle
 	issn_step_code = f"\step[fieldset = issn, fieldvalue = {{{issn}}}]" if issn else ""
 
+	journaltitle_pattern = re.escape(journaltitle) \
+		.replace(r"\ ", r"\s") \
+		.replace(r"\&", r"\\\x26")
+
 	write_tex_code(output_io, rf"""
 			\DeclareSourcemap{{
 				\maps[datatype = bibtex]{{
 					\map[overwrite, foreach = {{journal, journaltitle}}]{{
-						\step[fieldsource = \regexp{{$MAPLOOP}}, matchi = {{^{re.escape(journaltitle)}$}}, final]
+						\step[fieldsource = \regexp{{$MAPLOOP}}, matchi = \regexp{{^{journaltitle_pattern}$}}, final]
 						\step[fieldset = \regexp{{$MAPLOOP}}, fieldvalue = {{{{{new_journaltitle}}}}}]
 						{issn_step_code}
 					}}
