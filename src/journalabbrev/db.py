@@ -389,7 +389,7 @@ class JournalDB(EventEmitter):
 
 			return opts
 
-		super().__init__(self)
+		super().__init__()
 
 		self._filename = os.path.join(app_user_data_dir, "db.rocksdb")
 		self._force_upgrade_schema = force_upgrade_schema
